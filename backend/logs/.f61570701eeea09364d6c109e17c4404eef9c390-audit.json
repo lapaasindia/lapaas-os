@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "/Users/sahilkhanna/Downloads/Lapaas OS/backend/logs/.f61570701eeea09364d6c109e17c4404eef9c390-audit.json",
+    "files": [
+        {
+            "date": 1764505480962,
+            "name": "/Users/sahilkhanna/Downloads/Lapaas OS/backend/logs/security-error-2025-11-30.log",
+            "hash": "f000a53b8aca78cfe3ddee33e9d95f459e26d6d960f240c2ff0b8e27bfec70b4"
+        }
+    ],
+    "hashType": "sha256"
+}

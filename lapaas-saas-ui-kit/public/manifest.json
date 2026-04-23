@@ -1,0 +1,64 @@
+{
+  "name": "Lapaas OS - Founder Productivity",
+  "short_name": "Lapaas OS",
+  "description": "Your Personal Productivity Command Center - Smart time-blocking, meeting management, and interruption firewall for founders and leaders.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["productivity", "business", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-64.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Week",
+      "short_name": "My Week",
+      "description": "View your weekly overview",
+      "url": "/founder-os?tab=overview",
+      "icons": [{ "src": "/icons/icon-128.png", "sizes": "128x128" }]
+    },
+    {
+      "name": "Meetings",
+      "short_name": "Meetings",
+      "description": "Manage your meetings",
+      "url": "/founder-os?tab=meetings",
+      "icons": [{ "src": "/icons/icon-128.png", "sizes": "128x128" }]
+    },
+    {
+      "name": "Requests",
+      "short_name": "Requests",
+      "description": "View interruption requests",
+      "url": "/founder-os?tab=firewall",
+      "icons": [{ "src": "/icons/icon-128.png", "sizes": "128x128" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

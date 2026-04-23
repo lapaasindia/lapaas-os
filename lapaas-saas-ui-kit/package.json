@@ -1,0 +1,106 @@
+{
+  "name": "lapaas-os",
+  "version": "1.0.0",
+  "description": "Lapaas OS - Founder Productivity Command Center",
+  "main": "electron/main.js",
+  "types": "dist/index.d.ts",
+  "author": "Lapaas",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:lib": "vite build --mode lib",
+    "preview": "vite preview",
+    "lint": "eslint src --ext ts,tsx",
+    "type-check": "tsc --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5174 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:linux": "npm run build && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.lapaas.os",
+    "productName": "Lapaas OS",
+    "directories": {
+      "output": "electron-dist"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "public/icons/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "public/icons/icon-1024.png",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "public/icons/icon-256.png",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "icon": "public/icons/icon-512.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "@material/material-color-utilities": "^0.3.0",
+    "@material/web": "file:../material-web",
+    "clsx": "^2.0.0",
+    "dexie": "^4.2.1",
+    "lucide-react": "^0.294.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.9.5"
+  },
+  "devDependencies": {
+    "@storybook/addon-essentials": "^7.6.0",
+    "@storybook/react": "^7.6.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.0",
+    "concurrently": "^9.2.1",
+    "electron": "^39.2.4",
+    "electron-builder": "^26.0.12",
+    "eslint": "^8.54.0",
+    "eslint-plugin-react": "^7.33.0",
+    "postcss": "^8.4.0",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^3.3.0",
+    "terser": "^5.44.1",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "wait-on": "^9.0.3",
+    "workbox-window": "^7.4.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./components": {
+      "import": "./dist/components/index.js",
+      "types": "./dist/components/index.d.ts"
+    },
+    "./styles": "./dist/styles/index.css"
+  }
+}

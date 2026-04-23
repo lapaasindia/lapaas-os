@@ -1,0 +1,853 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  ArrowLeft, Edit2, Trash2, Save, X, Play, Square, Plus, Trash, 
+  Link as LinkIcon, FileText, CheckSquare, ListTodo, Clock, Users, Calendar
+} from 'lucide-react';
+import MeetingTimer from '../components/MeetingTimer';
+import DecisionLogger from '../components/DecisionLogger';
+import RoleAssignment from '../components/RoleAssignment';
+
+interface Meeting {
+  id: string;
+  title: string;
+  start_at: string;
+  end_at: string;
+  location?: string;
+  status: string;
+  notes?: string;
+  transcription_link?: string;
+  recording_link?: string;
+  attendees?: string[];
+}
+
+interface Decision {
+  id: string;
+  title: string;
+  rationale: string;
+  owner_id: string;
+  review_at: string;
+  created_at: string;
+}
+
+interface ActionItem {
+  id: string;
+  title: string;
+  owner_id: string;
+  owner_name?: string;
+  due_at: string;
+  status: string;
+}
+
+interface TeamMember {
+  id: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+}
+
+const MeetingDetailEnhanced: React.FC = () => {
+  const { meetingId } = useParams<{ meetingId: string }>();
+  const navigate = useNavigate();
+  const isNewMeeting = meetingId === 'new';
+  const [meeting, setMeeting] = useState<Meeting | null>(null);
+  const [decisions, setDecisions] = useState<Decision[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(isNewMeeting);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    start_at: '',
+    end_at: '',
+    location: '',
+    status: 'scheduled',
+    notes: ''
+  });
+  const [newAction, setNewAction] = useState({ title: '', owner_id: '', due_at: '' });
+  const [showActionForm, setShowActionForm] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [showNotesForm, setShowNotesForm] = useState(false);
+  const [transcriptionLink, setTranscriptionLink] = useState('');
+  const [recordingLink, setRecordingLink] = useState('');
+  const timerRef = useRef<{ startTimer: () => void; stopTimer: () => void } | null>(null);
+
+  useEffect(() => {
+    fetchTeamMembers();
+    if (meetingId && meetingId !== 'new') {
+      fetchMeetingDetails();
+      fetchDecisions();
+      fetchActionItems();
+    } else if (isNewMeeting) {
+      setLoading(false);
+    }
+  }, [meetingId]);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/v1/team-members?org_id=org-001');
+      if (response.ok) {
+        const data = await response.json();
+        setTeamMembers(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+    }
+  };
+
+  const getMemberDisplayName = (member: TeamMember) => {
+    if (member.name) return member.name;
+    if (member.firstName && member.lastName) return `${member.firstName} ${member.lastName}`;
+    if (member.firstName) return member.firstName;
+    return member.email.split('@')[0];
+  };
+
+  // Load links when meeting is loaded
+  useEffect(() => {
+    if (meeting) {
+      setTranscriptionLink(meeting.transcription_link || '');
+      setRecordingLink(meeting.recording_link || '');
+    }
+  }, [meeting]);
+
+  // Auto-save links when they change (debounced)
+  useEffect(() => {
+    if (meetingId && meetingId !== 'new' && (transcriptionLink || recordingLink)) {
+      const timer = setTimeout(() => {
+        handleSaveLinks();
+      }, 1000); // 1 second debounce
+      
+      return () => clearTimeout(timer);
+    }
+  }, [transcriptionLink, recordingLink]);
+
+  const fetchMeetingDetails = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/meetings/${meetingId}?org_id=org-001`);
+      if (response.ok) {
+        const data = await response.json();
+        const meetingData = data.data || data;
+        setMeeting(meetingData);
+        setEditForm({
+          title: meetingData.title || '',
+          start_at: meetingData.start_at || '',
+          end_at: meetingData.end_at || '',
+          location: meetingData.location || '',
+          status: meetingData.status || 'scheduled',
+          notes: meetingData.notes || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching meeting:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDecisions = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/meetings/${meetingId}/decisions`);
+      if (response.ok) {
+        const data = await response.json();
+        setDecisions(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching decisions:', error);
+    }
+  };
+
+  const fetchActionItems = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/meetings/${meetingId}/actions`);
+      if (response.ok) {
+        const data = await response.json();
+        setActionItems(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching action items:', error);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      if (isNewMeeting) {
+        // Create new meeting
+        const response = await fetch('http://localhost:3000/api/v1/meetings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            org_id: 'org-001',
+            ...editForm
+          })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const newMeetingId = data.data?.id || data.id;
+          navigate(`/meeting/${newMeetingId}`);
+        }
+      } else if (meeting) {
+        // Update existing meeting
+        const response = await fetch(`http://localhost:3000/api/v1/meetings/${meeting.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editForm)
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setMeeting({ ...meeting, ...editForm });
+          setIsEditing(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving meeting:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!meeting || !window.confirm('Are you sure you want to delete this meeting?')) return;
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/meetings/${meeting.id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        navigate('/founder-os?tab=meetings');
+      }
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+    }
+  };
+
+  const handleDecisionAdded = (decision: Decision) => {
+    setDecisions([...decisions, decision]);
+  };
+
+  const handleStartMeeting = async () => {
+    if (!meeting) return;
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/meetings/${meeting.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'in_progress' })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMeeting({ ...meeting, status: 'in_progress' });
+        // Automatically start the timer
+        if (timerRef.current) {
+          timerRef.current.startTimer();
+        }
+      }
+    } catch (error) {
+      console.error('Error starting meeting:', error);
+    }
+  };
+
+  const handleEndMeeting = async () => {
+    if (!meeting || !window.confirm('End this meeting?')) return;
+    try {
+      // Stop the timer first
+      if (timerRef.current) {
+        timerRef.current.stopTimer();
+      }
+      
+      const response = await fetch(`http://localhost:3000/api/v1/meetings/${meeting.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMeeting({ ...meeting, status: 'completed' });
+      }
+    } catch (error) {
+      console.error('Error ending meeting:', error);
+    }
+  };
+
+
+  const handleAddAction = async () => {
+    if (!newAction.title.trim() || !meetingId || !newAction.owner_id) return;
+    
+    // Find owner name for display
+    const owner = teamMembers.find(m => m.id === newAction.owner_id || m.email === newAction.owner_id);
+    const ownerName = owner ? getMemberDisplayName(owner) : newAction.owner_id;
+    
+    try {
+      // First create the action item for the meeting
+      const actionResponse = await fetch(`http://localhost:3000/api/v1/meetings/${meetingId}/actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newAction,
+          owner_name: ownerName,
+          status: 'pending'
+        })
+      });
+      
+      if (actionResponse.ok) {
+        const actionData = await actionResponse.json();
+        
+        // Also create a task in Personal Productivity for the assigned owner
+        try {
+          await fetch('http://localhost:3000/api/v1/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              org_id: 'org-001',
+              user_id: newAction.owner_id,
+              title: newAction.title,
+              description: `Action item from meeting: ${meeting?.title || 'Meeting'}`,
+              due_at: newAction.due_at,
+              status: 'pending',
+              priority: 'medium',
+              source: 'meeting',
+              source_id: meetingId,
+              action_id: actionData.data?.id
+            })
+          });
+        } catch (taskError) {
+          console.error('Error creating task from action:', taskError);
+        }
+        
+        setActionItems([...actionItems, { ...actionData.data, owner_name: ownerName }]);
+        setNewAction({ title: '', owner_id: '', due_at: '' });
+        setShowActionForm(false);
+      }
+    } catch (error) {
+      console.error('Error adding action:', error);
+    }
+  };
+
+  const handleDeleteAction = async (actionId: string) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/meetings/${meetingId}/actions/${actionId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setActionItems(actionItems.filter(a => a.id !== actionId));
+      }
+    } catch (error) {
+      console.error('Error deleting action:', error);
+    }
+  };
+
+  const handleSaveNotes = async () => {
+    if (!meeting || !meetingId || meetingId === 'new') return;
+    
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/meetings/${meetingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: editForm.notes })
+      });
+      
+      if (response.ok) {
+        setMeeting({ ...meeting, notes: editForm.notes });
+        setShowNotesForm(false);
+      }
+    } catch (error) {
+      console.error('Error saving notes:', error);
+    }
+  };
+
+  const handleSaveLinks = async () => {
+    if (!meeting || !meetingId || meetingId === 'new') return;
+    
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/meetings/${meetingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcription_link: transcriptionLink,
+          recording_link: recordingLink
+        })
+      });
+      
+      if (response.ok) {
+        console.log('Links saved successfully');
+      }
+    } catch (error) {
+      console.error('Error saving links:', error);
+    }
+  };
+
+  const calculateDuration = () => {
+    if (!meeting) return 60;
+    const start = new Date(meeting.start_at);
+    const end = new Date(meeting.end_at);
+    return Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+  };
+
+  if (loading && !isNewMeeting) {
+    return <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 flex items-center justify-center">
+      <div className="text-white text-xl">Loading meeting details...</div>
+    </div>;
+  }
+
+  if (!meeting && !isNewMeeting) {
+    return <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 flex items-center justify-center">
+      <div className="text-white text-xl">Meeting not found</div>
+    </div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/50 flex-shrink-0">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => navigate('/founder-os?tab=meetings')}
+                className="flex-shrink-0 text-gray-400 hover:text-white transition p-2 hover:bg-slate-800 rounded-lg"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div className="min-w-0">
+                <h1 className="text-lg font-bold text-white truncate">{meeting?.title || 'New Meeting'}</h1>
+                <p className="text-xs text-gray-400">
+                  {meeting?.start_at ? new Date(meeting.start_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {meeting?.status && (
+                <span className={`hidden sm:inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                  meeting.status === 'scheduled' ? 'bg-blue-500/20 text-blue-400' :
+                  meeting.status === 'in_progress' ? 'bg-green-500/20 text-green-400' :
+                  meeting.status === 'completed' ? 'bg-gray-500/20 text-gray-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {meeting.status.replace('_', ' ').toUpperCase()}
+                </span>
+              )}
+              {meeting?.status === 'scheduled' && (
+                <button
+                  onClick={handleStartMeeting}
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-sm font-medium"
+                >
+                  <Play size={14} />
+                  <span className="hidden sm:inline">Start</span>
+                </button>
+              )}
+              {meeting?.status === 'in_progress' && (
+                <button
+                  onClick={handleEndMeeting}
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-sm font-medium"
+                >
+                  <Square size={14} />
+                  <span className="hidden sm:inline">End</span>
+                </button>
+              )}
+              {!isEditing ? (
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-sm"
+                  >
+                    <Edit2 size={14} />
+                    <span className="hidden sm:inline">Edit</span>
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white p-1.5 rounded-lg transition"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleSave}
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-sm font-medium"
+                  >
+                    <Save size={14} />
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition text-sm"
+                  >
+                    <X size={14} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+        <div className="max-w-6xl mx-auto">
+          {/* Stats Bar */}
+          {meetingId && meetingId !== 'new' && (
+            <div className="flex flex-wrap gap-3 mb-5">
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/50 rounded-lg px-4 py-2">
+                <CheckSquare className="text-green-400" size={18} />
+                <span className="text-white font-semibold">{decisions.length}</span>
+                <span className="text-gray-400 text-sm">Decisions</span>
+              </div>
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/50 rounded-lg px-4 py-2">
+                <ListTodo className="text-orange-400" size={18} />
+                <span className="text-white font-semibold">{actionItems.length}</span>
+                <span className="text-gray-400 text-sm">Actions</span>
+              </div>
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/50 rounded-lg px-4 py-2">
+                <Clock className="text-blue-400" size={18} />
+                <span className="text-white font-semibold">{calculateDuration()}m</span>
+                <span className="text-gray-400 text-sm">Duration</span>
+              </div>
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/50 rounded-lg px-4 py-2">
+                <Users className="text-purple-400" size={18} />
+                <span className="text-white font-semibold">{meeting?.attendees?.length || 0}</span>
+                <span className="text-gray-400 text-sm">Attendees</span>
+              </div>
+            </div>
+          )}
+
+          {/* Main Content */}
+          <div className="flex flex-col lg:flex-row gap-5">
+            {/* Left Sidebar */}
+            <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+            {/* Meeting Details Card */}
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-4">
+              <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <Calendar size={16} className="text-blue-400" />
+                Meeting Details
+              </h2>
+              
+              {isEditing ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Title *</label>
+                    <input
+                      type="text"
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Start Time *</label>
+                    <input
+                      type="datetime-local"
+                      value={editForm.start_at}
+                      onChange={(e) => setEditForm({ ...editForm, start_at: e.target.value })}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">End Time *</label>
+                    <input
+                      type="datetime-local"
+                      value={editForm.end_at}
+                      onChange={(e) => setEditForm({ ...editForm, end_at: e.target.value })}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={editForm.location}
+                      onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
+                    <select
+                      value={editForm.status}
+                      onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    >
+                      <option value="scheduled">Scheduled</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+              ) : meeting ? (
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <p className="text-gray-400">Title</p>
+                    <p className="text-white font-medium">{meeting.title}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Start</p>
+                    <p className="text-white">{new Date(meeting.start_at).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">End</p>
+                    <p className="text-white">{new Date(meeting.end_at).toLocaleString()}</p>
+                  </div>
+                  {meeting.location && (
+                    <div>
+                      <p className="text-gray-400">Location</p>
+                      <p className="text-white">{meeting.location}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-gray-400">Status</p>
+                    <p className="text-white capitalize">{meeting.status}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Duration</p>
+                    <p className="text-white">{calculateDuration()} minutes</p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Role Assignment - Collapsible */}
+            {meetingId && meetingId !== 'new' && (
+              <details className="bg-slate-800/60 border border-slate-700/50 rounded-lg">
+                <summary className="p-3 cursor-pointer text-sm text-white font-medium flex items-center gap-2 hover:bg-slate-700/30 rounded-lg transition">
+                  <Users size={16} className="text-purple-400" />
+                  Meeting Roles
+                </summary>
+                <div className="px-3 pb-3">
+                  <RoleAssignment meetingId={meetingId} />
+                  </div>
+              </details>
+            )}
+            </div>
+
+            {/* Right Column - Main Content */}
+            <div className="flex-1 space-y-4">
+            {/* Meeting Timer */}
+            {meetingId && meetingId !== 'new' && (
+              <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg overflow-hidden">
+                <MeetingTimer 
+                  ref={timerRef}
+                  meetingId={meetingId} 
+                  duration={calculateDuration()}
+                />
+              </div>
+            )}
+
+            {/* Two Column Grid for Decisions and Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Decision Logger */}
+              {meetingId && meetingId !== 'new' && (
+                <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg overflow-hidden">
+                  <DecisionLogger
+                    meetingId={meetingId}
+                    decisions={decisions}
+                    onDecisionAdded={handleDecisionAdded}
+                  />
+                </div>
+              )}
+
+              {/* Action Items */}
+              {meetingId && meetingId !== 'new' && (
+              <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <ListTodo size={16} className="text-orange-400" />
+                    Action Items
+                  </h3>
+                  <button
+                    onClick={() => setShowActionForm(!showActionForm)}
+                    className="bg-orange-600 hover:bg-orange-700 text-white px-2.5 py-1 rounded-md flex items-center gap-1 text-xs transition font-medium"
+                  >
+                    <Plus size={12} />
+                    Add
+                  </button>
+                </div>
+                
+                {showActionForm && (
+                  <div className="bg-slate-700/50 rounded-md p-3 mb-3 space-y-2 border border-slate-600/50">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Action Title *</label>
+                      <input
+                        type="text"
+                        value={newAction.title}
+                        onChange={(e) => setNewAction({ ...newAction, title: e.target.value })}
+                        placeholder="What needs to be done?"
+                        className="w-full bg-slate-600/50 border border-slate-500/50 rounded-lg px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Assign To *</label>
+                      <select
+                        value={newAction.owner_id}
+                        onChange={(e) => setNewAction({ ...newAction, owner_id: e.target.value })}
+                        className="w-full bg-slate-600/50 border border-slate-500/50 rounded-lg px-3 py-2 text-white text-sm"
+                      >
+                        <option value="">Select team member...</option>
+                        {teamMembers.map((member) => (
+                          <option key={member.id || member.email} value={member.id || member.email}>
+                            {getMemberDisplayName(member)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Due Date</label>
+                      <input
+                        type="datetime-local"
+                        value={newAction.due_at}
+                        onChange={(e) => setNewAction({ ...newAction, due_at: e.target.value })}
+                        className="w-full bg-slate-600/50 border border-slate-500/50 rounded-md px-2 py-1.5 text-white text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={handleAddAction}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md transition text-xs font-medium"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setShowActionForm(false)}
+                        className="bg-slate-600 hover:bg-slate-500 text-white px-3 py-1.5 rounded-md transition text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {actionItems.length > 0 ? (
+                    actionItems.map((action) => {
+                      const owner = teamMembers.find(m => m.id === action.owner_id || m.email === action.owner_id);
+                      const ownerName = action.owner_name || (owner ? getMemberDisplayName(owner) : action.owner_id);
+                      const dueDate = action.due_at ? new Date(action.due_at).toLocaleDateString() : 'No due date';
+                      
+                      return (
+                        <div key={action.id} className="bg-slate-700/50 rounded-md p-2.5 flex justify-between items-start group">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">{action.title}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {ownerName} · {dueDate}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteAction(action.id)}
+                            className="text-red-400 hover:text-red-300 ml-2 opacity-0 group-hover:opacity-100 transition"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-gray-500 text-xs text-center py-4">No action items yet</p>
+                  )}
+                </div>
+              </div>
+              )}
+            </div>
+
+            {/* Notes and Links Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Meeting Notes */}
+              {meetingId && meetingId !== 'new' && (
+              <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <FileText size={16} className="text-blue-400" />
+                    Notes
+                  </h3>
+                  <button
+                    onClick={() => setShowNotesForm(!showNotesForm)}
+                    className="text-blue-400 hover:text-blue-300 text-xs font-medium transition"
+                  >
+                    {showNotesForm ? 'Cancel' : 'Edit'}
+                  </button>
+                </div>
+                
+                {showNotesForm ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      className="w-full bg-slate-700/50 border border-slate-600/50 rounded-md px-3 py-2 text-white h-24 text-sm"
+                      placeholder="Add meeting notes..."
+                    />
+                    <button
+                      onClick={handleSaveNotes}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition text-sm font-medium"
+                    >
+                      Save Notes
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-gray-400 whitespace-pre-wrap text-xs leading-relaxed max-h-24 overflow-y-auto">
+                    {meeting?.notes || 'No notes yet. Click Edit to add.'}
+                  </p>
+                )}
+              </div>
+              )}
+
+              {/* Links */}
+              {meetingId && meetingId !== 'new' && (
+              <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <LinkIcon size={16} className="text-purple-400" />
+                  Links
+                </h3>
+                
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Transcription</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={transcriptionLink}
+                        onChange={(e) => setTranscriptionLink(e.target.value)}
+                        placeholder="https://..."
+                        className="flex-1 bg-slate-700/50 border border-slate-600/50 rounded-md px-2.5 py-1.5 text-white text-xs"
+                      />
+                      {transcriptionLink && (
+                        <a
+                          href={transcriptionLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-md text-xs font-medium transition"
+                        >
+                          Open
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Recording</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={recordingLink}
+                        onChange={(e) => setRecordingLink(e.target.value)}
+                        placeholder="https://..."
+                        className="flex-1 bg-slate-700/50 border border-slate-600/50 rounded-md px-2.5 py-1.5 text-white text-xs"
+                      />
+                      {recordingLink && (
+                        <a
+                          href={recordingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 rounded-md text-xs font-medium transition"
+                        >
+                          Open
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MeetingDetailEnhanced;
