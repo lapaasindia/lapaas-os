@@ -414,6 +414,25 @@ module.exports = (app) => {
     }
   });
 
+  app.get('/api/v1/commitments/top3', async (req, res) => {
+    try {
+      const org_id = req.query.org_id || 'org-001';
+      const user_id = req.query.user_id;
+      const date = req.query.date;
+      
+      if (!user_id || !date) {
+        return res.status(400).json({ error: 'user_id and date are required' });
+      }
+      
+      let commitments = await dbHelper.getCommitments(org_id, { user_id, date });
+      commitments = commitments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 3);
+      res.json({ success: true, data: { date, commitments, total: commitments.length, completed: commitments.filter(c => c.completed).length } });
+    } catch (error) {
+      console.error('Error fetching top 3 commitments:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get('/api/v1/commitments/:commitmentId', async (req, res) => {
     try {
       const { commitmentId } = req.params;

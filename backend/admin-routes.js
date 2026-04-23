@@ -103,7 +103,7 @@ module.exports = (app) => {
     res.status(201).json({ success: true, message: 'AI credits allocated', data: credit });
   });
 
-  app.get('/api/v1/admin/ai-credits/:org_id', (req, res) => {
+  app.get(['/api/v1/admin/ai-credits', '/api/v1/admin/ai-credits/:org_id'], (req, res) => {
     const { org_id } = req.params;
     const credit = aiCredits.find(c => c.org_id === org_id) || {
       org_id,
@@ -115,7 +115,7 @@ module.exports = (app) => {
     res.status(200).json({ success: true, data: credit });
   });
 
-  app.put('/api/v1/admin/ai-credits/:org_id', (req, res) => {
+  app.put(['/api/v1/admin/ai-credits', '/api/v1/admin/ai-credits/:org_id'], (req, res) => {
     const { org_id } = req.params;
     const { total_credits, monthly_limit } = req.body;
     const updated = {
@@ -158,7 +158,7 @@ module.exports = (app) => {
     res.status(201).json({ success: true, message: 'Subscription created', data: subscription });
   });
 
-  app.get('/api/v1/admin/subscriptions/:org_id', (req, res) => {
+  app.get(['/api/v1/admin/subscriptions', '/api/v1/admin/subscriptions/:org_id'], (req, res) => {
     const { org_id } = req.params;
     const subscription = subscriptions.find(s => s.org_id === org_id) || {
       org_id,
@@ -186,7 +186,7 @@ module.exports = (app) => {
     res.status(201).json({ success: true, message: 'Payment recorded', data: payment });
   });
 
-  app.get('/api/v1/admin/payments/:org_id', (req, res) => {
+  app.get(['/api/v1/admin/payments', '/api/v1/admin/payments/:org_id'], (req, res) => {
     const { org_id } = req.params;
     const result = payments.filter(p => p.org_id === org_id);
     res.status(200).json({ success: true, data: result, total: result.length });
@@ -341,7 +341,7 @@ module.exports = (app) => {
     res.status(201).json({ success: true, message: 'Collections policy created', data: policy });
   });
 
-  app.get('/api/v1/admin/collections/policy/:org_id', (req, res) => {
+  app.get(['/api/v1/admin/collections/policy', '/api/v1/admin/collections/policy/:org_id'], (req, res) => {
     const { org_id } = req.params;
     const policy = collectionsPolicies.find(p => p.org_id === org_id) || {
       org_id,
@@ -374,7 +374,7 @@ module.exports = (app) => {
     res.status(201).json({ success: true, message: 'Collections template created', data: template });
   });
 
-  app.get('/api/v1/admin/collections/templates/:org_id', (req, res) => {
+  app.get(['/api/v1/admin/collections/templates', '/api/v1/admin/collections/templates/:org_id'], (req, res) => {
     const { org_id } = req.params;
     const templates = collectionsTemplates.filter(t => t.org_id === org_id);
     const defaultTemplates = [
@@ -403,7 +403,7 @@ module.exports = (app) => {
     res.status(201).json({ success: true, message: 'Collections Agent configured', data: agent });
   });
 
-  app.get('/api/v1/admin/collections/agent/:org_id', (req, res) => {
+  app.get('/api/v1/admin/collections/agent/:org_id?', (req, res) => {
     const { org_id } = req.params;
     const agent = collectionsAgents.find(a => a.org_id === org_id) || {
       org_id,
@@ -416,7 +416,7 @@ module.exports = (app) => {
     res.status(200).json({ success: true, data: agent });
   });
 
-  app.get('/api/v1/admin/collections/agent/:org_id/logs', (req, res) => {
+  app.get('/api/v1/admin/collections/agent/:org_id?/logs', (req, res) => {
     const { org_id } = req.params;
     const logs = [
       { id: uuidv4(), org_id, action: 'send_reminder', status: 'success', timestamp: new Date().toISOString() },
@@ -443,7 +443,7 @@ module.exports = (app) => {
     res.status(201).json({ success: true, message: 'Collections automation created', data: automation });
   });
 
-  app.get('/api/v1/admin/collections/automations/:org_id', (req, res) => {
+  app.get('/api/v1/admin/collections/automations/:org_id?', (req, res) => {
     const { org_id } = req.params;
     const automations = collectionsAutomations.filter(a => a.org_id === org_id);
     const defaultAutomations = [

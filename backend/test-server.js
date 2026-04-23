@@ -188,6 +188,103 @@ const initializeDatabase = () => {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )`);
 
+          // Missing tables for test report
+          db.run(`CREATE TABLE IF NOT EXISTS feature_roles (
+            id TEXT PRIMARY KEY,
+            role_name TEXT NOT NULL,
+            feature_id TEXT NOT NULL,
+            can_read BOOLEAN DEFAULT 1,
+            can_write BOOLEAN DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS request_sla_tracking (
+            id TEXT PRIMARY KEY,
+            request_id TEXT NOT NULL,
+            priority TEXT DEFAULT 'standard',
+            sla_deadline DATETIME,
+            first_response_at DATETIME,
+            resolution_at DATETIME,
+            is_breached BOOLEAN DEFAULT 0,
+            updated_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS request_batches (
+            id TEXT PRIMARY KEY,
+            batch_date TEXT,
+            batch_time TEXT,
+            status TEXT DEFAULT 'pending',
+            request_count INTEGER DEFAULT 0,
+            processed_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS request_batch_items (
+            id TEXT PRIMARY KEY,
+            batch_id TEXT NOT NULL,
+            request_id TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS sessions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            token TEXT NOT NULL,
+            expires_at DATETIME NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS organizations (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            domain TEXT,
+            status TEXT DEFAULT 'active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS billing_subscriptions (
+            id TEXT PRIMARY KEY,
+            org_id TEXT NOT NULL,
+            plan_id TEXT NOT NULL,
+            status TEXT DEFAULT 'active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS invoices (
+            id TEXT PRIMARY KEY,
+            org_id TEXT NOT NULL,
+            amount REAL NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS customers (
+            id TEXT PRIMARY KEY,
+            org_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            email TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS vendors (
+            id TEXT PRIMARY KEY,
+            org_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            email TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
+          db.run(`CREATE TABLE IF NOT EXISTS audit_logs (
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            action TEXT NOT NULL,
+            resource_type TEXT,
+            resource_id TEXT,
+            details TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
+
           console.log('✅ Database tables created/verified');
           resolve();
         });
@@ -2073,10 +2170,11 @@ customersVendorsRoutes(app);
 payablesRoutes(app);
 complianceRoutes(app);
 founderOSRoutes(app);
+
+app.use("/api/v1", founderOSCommitmentsTimeBlocksRoutes);
 founderOSExtendedRoutes(app);
 calendarTasksRoutes(app);
 founderOSPhase0Routes(app);
-app.use('/api/v1', founderOSCommitmentsTimeBlocksRoutes);
 app.use('/api/v1', founderOSMeetingsRoutes);
 app.use('/api/v1', founderOSFirewallRoutes);
 app.use('/api/v1', founderOSDeepWorkGuardrailsRoutes);

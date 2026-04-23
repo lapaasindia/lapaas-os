@@ -209,19 +209,37 @@ module.exports = (app) => {
   // ============ CALENDAR ENDPOINTS ============
 
   // Get all calendar events
-  app.get('/api/v1/calendar/events', (req, res) => {
+  app.get(['/api/v1/calendar/events', '/api/v1/calendar'], (req, res) => {
     try {
       const org_id = req.query.org_id || 'org-001';
-      const user_id = req.query.user_id || 'user-001';
-      const start_date = req.query.start_date;
-      const end_date = req.query.end_date;
+      const user_id = req.query.user_id;
 
       let events = calendarTasksDatabase.calendar_events.filter(
-        e => e.org_id === org_id && e.user_id === user_id
+        e => e.org_id === org_id
       );
 
-      if (start_date && end_date) {
-        events = events.filter(e => e.start_at >= start_date && e.start_at <= end_date);
+      if (user_id) {
+        events = events.filter(e => e.user_id === user_id);
+      }
+
+      res.json({ success: true, data: events, total: events.length });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Alias for calendar
+  app.get('/api/v1/calendar', (req, res) => {
+    try {
+      const org_id = req.query.org_id || 'org-001';
+      const user_id = req.query.user_id;
+
+      let events = calendarTasksDatabase.calendar_events.filter(
+        e => e.org_id === org_id
+      );
+
+      if (user_id) {
+        events = events.filter(e => e.user_id === user_id);
       }
 
       res.json({ success: true, data: events, total: events.length });
@@ -231,7 +249,7 @@ module.exports = (app) => {
   });
 
   // Create calendar event
-  app.post('/api/v1/calendar/events', (req, res) => {
+  app.post(['/api/v1/calendar/events', '/api/v1/calendar'], (req, res) => {
     try {
       const { user_id, title, description, start_at, end_at, type, recurrence_rule, attendees, color_tag } = req.body;
       const event = {
@@ -259,7 +277,7 @@ module.exports = (app) => {
   });
 
   // Update calendar event
-  app.put('/api/v1/calendar/events/:id', (req, res) => {
+  app.put(['/api/v1/calendar/events/:id', '/api/v1/calendar/:id'], (req, res) => {
     try {
       const event = calendarTasksDatabase.calendar_events.find(e => e.id === req.params.id);
       if (!event) return res.status(404).json({ error: 'Event not found' });
@@ -271,7 +289,7 @@ module.exports = (app) => {
   });
 
   // Delete calendar event
-  app.delete('/api/v1/calendar/events/:id', (req, res) => {
+  app.delete(['/api/v1/calendar/events/:id', '/api/v1/calendar/:id'], (req, res) => {
     try {
       const index = calendarTasksDatabase.calendar_events.findIndex(e => e.id === req.params.id);
       if (index === -1) return res.status(404).json({ error: 'Event not found' });

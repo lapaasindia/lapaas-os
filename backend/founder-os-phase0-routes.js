@@ -32,26 +32,26 @@ const db = {
 module.exports = (app) => {
   // ============ PERSONAL PRODUCTIVITY (15 endpoints) ============
 
-  app.get('/api/v1/calendar/events', (req, res) => {
+  app.get(['/api/v1/calendar/events', '/api/v1/calendar'], (req, res) => {
     const org_id = req.query.org_id || 'org-001';
     const events = db.calendar_events.filter(e => e.org_id === org_id);
     res.json({ success: true, data: events, total: events.length });
   });
 
-  app.post('/api/v1/calendar/events', (req, res) => {
+  app.post(['/api/v1/calendar/events', '/api/v1/calendar'], (req, res) => {
     const event = { id: `cal-${Date.now()}`, org_id: 'org-001', ...req.body, created_at: new Date().toISOString() };
     db.calendar_events.push(event);
     res.status(201).json({ success: true, data: event });
   });
 
-  app.put('/api/v1/calendar/events/:id', (req, res) => {
+  app.put(['/api/v1/calendar/events/:id', '/api/v1/calendar/:id'], (req, res) => {
     const event = db.calendar_events.find(e => e.id === req.params.id);
     if (!event) return res.status(404).json({ error: 'Not found' });
     Object.assign(event, req.body);
     res.json({ success: true, data: event });
   });
 
-  app.delete('/api/v1/calendar/events/:id', (req, res) => {
+  app.delete(['/api/v1/calendar/events/:id', '/api/v1/calendar/:id'], (req, res) => {
     const idx = db.calendar_events.findIndex(e => e.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
     const event = db.calendar_events.splice(idx, 1)[0];

@@ -21,7 +21,7 @@ const generalRateLimiter = rateLimit({
     message: 'You have exceeded the rate limit. Please try again later.',
     retryAfter: 15 * 60, // seconds
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  standardHeaders: true, validate: { xForwardedForHeader: false, default: false }, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   handler: (req, res, next, options) => {
     console.warn(`Rate limit exceeded for IP: ${req.ip}`);
@@ -41,7 +41,7 @@ const authRateLimiter = rateLimit({
     message: 'Too many login attempts. Please try again after 15 minutes.',
     retryAfter: 15 * 60,
   },
-  standardHeaders: true,
+  standardHeaders: true, validate: { xForwardedForHeader: false, default: false },
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
   handler: (req, res, next, options) => {
@@ -62,7 +62,7 @@ const passwordResetRateLimiter = rateLimit({
     message: 'Too many password reset attempts. Please try again after 1 hour.',
     retryAfter: 60 * 60,
   },
-  standardHeaders: true,
+  standardHeaders: true, validate: { xForwardedForHeader: false, default: false },
   legacyHeaders: false,
   handler: (req, res, next, options) => {
     console.warn(`Password reset rate limit exceeded for IP: ${req.ip}`);
@@ -83,7 +83,7 @@ const apiKeyRateLimiter = rateLimit({
     message: 'You have exceeded the API rate limit.',
     retryAfter: 60 * 60,
   },
-  standardHeaders: true,
+  standardHeaders: true, validate: { xForwardedForHeader: false, default: false },
   legacyHeaders: false,
 });
 

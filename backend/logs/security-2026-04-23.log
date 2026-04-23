@@ -1,0 +1,10 @@
+{"email":"qa_1776917813@lapaas.com","eventType":"LOGIN_SUCCESS","ip":"::1","level":"info","message":"LOGIN_SUCCESS","service":"lapaas-security","timestamp":"2026-04-23T04:16:54.165Z","twoFactorUsed":false,"userId":"cc168c46-9344-4330-b33e-fbbc76c553d8"}
+{"email":"qa_1776917880@lapaas.com","eventType":"LOGIN_SUCCESS","ip":"::1","level":"info","message":"LOGIN_SUCCESS","service":"lapaas-security","timestamp":"2026-04-23T04:18:00.531Z","twoFactorUsed":false,"userId":"08be33ad-b70e-4dda-a30e-c66d85b66c73"}
+{"eventType":"PERMISSION_DENIED","ip":"::1","level":"warn","message":"PERMISSION_DENIED","method":"GET","path":"/api/v1/users","service":"lapaas-security","timestamp":"2026-04-23T04:20:35.012Z"}
+{"eventType":"PERMISSION_DENIED","ip":"::1","level":"warn","message":"PERMISSION_DENIED","method":"GET","path":"/api/v1/users","service":"lapaas-security","timestamp":"2026-04-23T04:20:35.013Z"}
+{"email":"admin@lapaas.com","eventType":"LOGIN_FAILURE","ip":"::1","level":"warn","message":"LOGIN_FAILURE","reason":"Invalid password","service":"lapaas-security","timestamp":"2026-04-23T04:23:46.271Z","userId":"user-001"}
+{"eventType":"PERMISSION_DENIED","ip":"::1","level":"warn","message":"PERMISSION_DENIED","method":"POST","path":"/api/v1/auth/login","service":"lapaas-security","timestamp":"2026-04-23T04:23:46.272Z"}
+{"email":"admin@lapaas.com","eventType":"LOGIN_SUCCESS","ip":"::1","level":"info","message":"LOGIN_SUCCESS","service":"lapaas-security","timestamp":"2026-04-23T04:23:58.618Z","twoFactorUsed":false,"userId":"user-001"}
+{"email":"admin@lapaas.com","eventType":"LOGIN_FAILURE","ip":"::1","level":"warn","message":"LOGIN_FAILURE","reason":"Invalid password","service":"lapaas-security","timestamp":"2026-04-23T04:59:47.267Z","userId":"user-001"}
+{"eventType":"PERMISSION_DENIED","ip":"::1","level":"warn","message":"PERMISSION_DENIED","method":"POST","path":"/api/v1/auth/login","service":"lapaas-security","timestamp":"2026-04-23T04:59:47.267Z"}
+{"eventType":"PERMISSION_DENIED","ip":"::1","level":"warn","message":"PERMISSION_DENIED","method":"GET","path":"/api/v1/users","service":"lapaas-security","timestamp":"2026-04-23T04:59:47.396Z"}

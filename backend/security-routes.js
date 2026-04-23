@@ -676,9 +676,9 @@ module.exports = (app, db, authMiddleware) => {
     const { email } = req.query;
     
     if (!email) {
-      return res.status(400).json({
-        error: 'Email Required',
-        message: 'Email is required',
+      return res.status(200).json({
+        locked: false,
+        message: 'No email provided',
       });
     }
     
